@@ -25,6 +25,9 @@ class WebDriver():
         try:self.browser.get(url); return True
         except: return False
 
+    # 获取当前网址
+    def get_current_url(self): return self.browser.current_url
+
     # 隐式等待
     def is_wait(self, xpath):
         WebDriverWait(self.browser, 3000).until(lambda the_driver: the_driver.find_element_by_xpath(xpath).is_displayed())
@@ -248,9 +251,11 @@ class WebDriver():
         self.browser.execute_script(js)
     # 获取采集到的xpath
 
+    def clear_list(self):
+        self.step_list.clear()
 
     def catch_xpath(self):
-        step_info = {'actionid': None, 'fatherid': None, 'actionType': None, 'xpath': None, 'remark': ''}
+        step_info = {'stepNumber': None, 'actionType': None, 'xpath': None, 'value': None, 'remark': ''}
         result_js = """
                             var xpathResult = document.getElementById('textarea_result');
                             console.log(xpathResult)
