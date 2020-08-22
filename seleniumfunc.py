@@ -68,6 +68,14 @@ class WebDriver():
         try: e = self.browser.find_elements_by_class_name(name); self.browser.execute_script("window.stop()"); return len(e) > 0
         except: return False
 
+    def check_id_exist(self,xpath):
+        try:
+            element = self.browser.find_element_by_xpath(xpath)
+            e_id = element.get_attribute('id')
+            return e_id
+        except:
+            return False
+
     # 跳转到指定容器，需要参数 容器xpath。 type: jump
     def switch_win(self, frame):
         # 先自定义iframeID,
@@ -254,8 +262,9 @@ class WebDriver():
     def clear_list(self):
         self.step_list.clear()
 
+    # 每次采集xpath值前进行所在容器判断。判断后生成步骤。
     def catch_xpath(self):
-        step_info = {'stepNumber': None, 'actionType': None, 'xpath': None, 'value': None, 'remark': ''}
+        step_info = {'stepNumber': 1, 'actionType': '', 'url': '', 'xpath': '', 'value': '', 'remark': ''}
         result_js = """
                             var xpathResult = document.getElementById('textarea_result');
                             console.log(xpathResult)
@@ -264,7 +273,7 @@ class WebDriver():
                             return result
                         """
         result = self.browser.execute_script(result_js)
-        # 如果是空，那么表示采集的数据不在这个容器内，先跳转到主界面
+        # 如果是空，那么表示采集的数据不在这个容器内(或者用户没有选择目标元素)，先跳转到主界面
         if result == '':
             self.browser.switch_to.default_content()
             step_info['actionType'] = 'jump'
@@ -293,3 +302,28 @@ class WebDriver():
             self.step_list.append(step_info)
             return self.step_list
 
+    # 通过xpath给元素设置属性
+    def set_element_attribute(self, info):
+        js = """
+        var ele = document.evaluate('{}',document).iterateNext();
+        console.log(ele);
+        if(ele) {{
+            ele.setAttribute('{}','{}');
+            return true
+        }};
+        return false
+        """.format(info['xpath'], info['name'], info['value'])
+        done = self.browser.execute_script(js)
+        if done: return info
+        else:return done
+
+
+    # 通过id给标签画框
+    def add_style_border(self,id):
+        js = """document.getElementById('{}').style.border="3px solid red";""".format(id)
+        self.browser.execute_script(js)
+
+    # 通过id移除添加的样式
+    def remove_style(self,id):
+        js = """document.getElementById('{}').style="";""".format(id)
+        self.browser.execute_script(js)

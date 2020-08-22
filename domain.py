@@ -74,7 +74,7 @@ class NewStep(tk.Toplevel):
         # 演示、提交、取消
         self.commitFrame = ttk.LabelFrame(self, text='')
         self.commitFrame.grid(column=0, row=4, padx=8, pady=4)
-        self.check = tk.Button(self.commitFrame, text="演示校验", command=self.cancel)
+        self.check = tk.Button(self.commitFrame, text="演示校验", command=self.check)
         self.check.grid(column=0, row=0, sticky='W')
         self.commit = tk.Button(self.commitFrame, text="确认提交", command=self.ok)
         self.commit.grid(column=1, row=0, sticky='W', padx=30)
@@ -89,13 +89,31 @@ class NewStep(tk.Toplevel):
         self.step_info['remark'] = self.remark.get()
         self.step_info['value'] = self.value.get()
         # 显式地更改父窗口参数
-        self.parent.step_list.append(self.step_info)
+        # self.parent.step_list.append(self.step_info)
+        self.parent.is_cancel = True
         # 显式地更新父窗口界面
         # self.parent.l1.config(text=self.parent.name)
         self.destroy()  # 销毁窗口
 
     def cancel(self):
+        self.parent.is_cancel = False
         self.destroy()
+
+    def check(self):
+        info = {'xpath':self.xpath.get(), 'name':'id', 'value':self.xpath.get()}
+        # find ,click
+        setp_type = self.stepType_box.get()
+        if setp_type == 'write':
+            self.parent.sfc.input_any(self.xpath.get(), self.value.get())
+
+        # 检测元素是否有id
+        is_id = self.parent.sfc.check_id_exist(self.xpath.get())
+        if is_id and is_id != '':
+            self.parent.sfc.add_style_border(is_id)
+        else:
+            element = self.parent.sfc.set_element_attribute(info)
+            if element:
+                self.parent.sfc.add_style_border(info['value'])
 # 主窗口
 class MyBox():
     def __init__(self):
@@ -106,54 +124,57 @@ class MyBox():
         self.win = tk.Tk()
         self.win.title('My MagicBox')
         self.mighty = ttk.LabelFrame(self.win, text=' 用户操作 ')
-        # self.a_label = ttk.Label(self.mighty, text="用户名:")
-        # self.name = tk.StringVar()
         self.open = ttk.Button(self.mighty, text="打开浏览器", command=self.open_chrome, width=10)
-        # self.name_entered = ttk.Entry(self.mighty, width=30, textvariable=self.name)
         self.put_js = ttk.Button(self.mighty, text="录制当前页面", command=self.start_record, width=10)
         self.new_script = ttk.Button(self.mighty, text="新建脚本", command=self.new_script, width=10)
-        self.edit_script = ttk.Button(self.mighty, text="编辑脚本", command=self.catch_step, width=10)
         self.action = ttk.Button(self.mighty, text="录制此步骤", command=self.catch_step, width=10)
-        self.insert_step = ttk.Button(self.mighty, text="ceshi", command=self.new_step, width=10)
+        self.edit_script = ttk.Button(self.mighty, text="编辑脚本", command=self.catch_step, width=10)
+        self.save_script = ttk.Button(self.mighty, text="保存脚本", command=self.new_step, width=10)
+        self.go_js = ttk.Button(self.mighty, text="注入功能", command=self.set_js, width=10)
         # self.action = ttk.Button(self.mighty, text="测试", command=lambda: self.get_step(action_id=1), width=10)
         self.mighty1 = ttk.LabelFrame(self.win, text=' 步骤详情 ')
         column = ("步骤顺序", "URL", "步骤类型", "XPATH", "VALUE", "REMARK")
         self.table = ttk.Treeview(self.mighty1, show="headings", column=column)
-        self.table.column("步骤顺序", width=100)
-        self.table.column("URL", width=100)  
-        self.table.column("步骤类型", width=100)  
-        self.table.column("XPATH", width=100)  
-        self.table.column("VALUE", width=100)  
-        self.table.column("REMARK", width=100)  
-        self.table.heading("步骤顺序", text="步骤顺序")
-        self.table.heading("URL", text="URL")  
-        self.table.heading("步骤类型", text="步骤类型")  
-        self.table.heading("XPATH", text="XPATH")  
-        self.table.heading("VALUE", text="VALUE")  
-        self.table.heading("REMARK", text="REMARK")
+        self.vbar = ttk.Scrollbar(self.mighty1, orient='vertical', command=self.table.yview)
+        self.table.configure(yscrollcommand=self.vbar.set)
+        self.table.column("步骤顺序", width=50, anchor='center')
+        self.table.column("URL", width=80, anchor='center')
+        self.table.column("步骤类型", width=80, anchor='center')
+        self.table.column("XPATH", width=240, anchor='center')
+        self.table.column("VALUE", width=100, anchor='center')
+        self.table.column("REMARK", width=170, anchor='center')
+        self.table.heading("步骤顺序", text="No", anchor='center')
+        self.table.heading("URL", text="URL", anchor='center')
+        self.table.heading("步骤类型", text="TYPE", anchor='center')
+        self.table.heading("XPATH", text="XPATH", anchor='center')
+        self.table.heading("VALUE", text="VALUE", anchor='center')
+        self.table.heading("REMARK", text="REMARK", anchor='center')
 
         self.script_name = 'a'
         self.step_list = []
         self.url = None
         self.step_number = 0
+        self.is_cancel = False
 
     def layout_grid(self):
         self.mighty.grid(column=0, row=0, padx=8, pady=4)
         self.open.grid(column=0, row=1, sticky='W')
         self.put_js.grid(column=1, row=1, sticky='W')
         self.new_script.grid(column=3, row=1, sticky='W')
-        self.edit_script.grid(column=4, row=1, sticky='W')
-        self.action.grid(column=5, row=1, sticky='W')
-        self.insert_step.grid(column=6, row=1, sticky='W')
+        self.action.grid(column=4, row=1, sticky='W')
+        self.edit_script.grid(column=5, row=1, sticky='W')
+        self.save_script.grid(column=6, row=1, sticky='W')
+        self.go_js.grid(column=7, row=1, sticky='W')
         self.mighty1.grid(column=0, row=1, padx=8, pady=4)
         self.table.grid(column=0, row=2, sticky='W')
+        self.vbar.grid(row=2, column=1, sticky='NS')
 
     def start(self):
+        self.refresh_table()
         self.layout_grid()
         self.win.mainloop()
 
     def open_chrome(self):
-        print('打开浏览器')
         # 初始化自动化方法
         self.sfc = sfunc.WebDriver()
 
@@ -167,8 +188,8 @@ class MyBox():
             self.sfc.init_iframe()
             self.url = self.sfc.get_current_url()
             self.step_number = 1
-            self.step_list.append({'stepNumber': 1, 'actionType': 'get', 'xpath': None, 'remark': '打开目标网址'})
-        except: tk.messagebox.showerror('错误', '请先打开浏览器');
+            self.step_list.append({'stepNumber': 1, 'actionType': 'get', 'url': self.url, 'xpath': '', 'value': '', 'remark': '打开目标网址'})
+        except: tk.messagebox.showerror('错误', '请先打开浏览器')
 
     # 在新建脚本后，需要将脚本信息插入数据库，生成action的信息返回。
     def new_script(self):
@@ -189,29 +210,50 @@ class MyBox():
 
     # 测试不同容器间步骤切换。
     def catch_step(self):
+        # self.url = self.sfc.get_current_url()
+        # 添加判断 ，如果
         self.sfc.clear_list()
-        step_list = self.sfc.catch_xpath()
+        step_list = self.sfc.catch_xpath() # [当前抓取的步骤]
+        print('1=====', step_list)
+        if len(step_list) < 1:
+            tk.messagebox.showerror('错误', '请先选取目标元素！')
+            return
         for step in step_list:
             self.step_number += 1
-            step['stepNumber'] = self.step_number
+            step['stepNumber'] = self.step_number  # 给步骤排序完成
             # 如果不是跳转的动作，则弹出新增动作的输入框
-            if step['actionType'] is None:
-                self.new_step()
-
-        self.step_list.extend(step_list)
+            if step['actionType'] == '':
+                self.new_step(step)  # 将排序好的步骤传入新建页面 ，进行value和type、remark填写。
+                # 新增步骤有两种情况，一个是确认，一个是取消 。填写完成后用户点击确定，将修改后的step插入self.step_list
+                # self.step_list.remove(step)  # 确认新增，
+        if self.is_cancel:
+            self.step_list.extend(step_list)
         print(self.step_list)
+        # 刷新步骤
 
-    def new_step(self):
-        step = {'stepNumber': 1, 'actionType': None, 'xpath': '/html/body/div[1]/div[4]/div[1]/div[1]/div[2]/form[1]/div[2]/div[1]/input[1]', 'value': None, 'remark': '打开目标网址'}
+    def refresh_table(self):
+        # 清空表
+        for _ in map(self.table.delete, self.table.get_children("")):pass
+        # 插入表
+        if len(self.step_list) > 0:
+            for rw in self.step_list:
+                self.table.insert('', rw.get('stepNumber'), values=(
+                rw.get('stepNumber'), rw.get('url'), rw.get('actionType'), rw.get('xpath'), rw.get('value'), rw.get('remark')))
+        self.table.after(500, self.refresh_table)
+
+
+    # 打开新增步骤的窗口
+    def new_step(self, step):
         ns = NewStep(self, step)
         self.win.wait_window(ns)
-        print(self.step_list)
-        # column = ("步骤顺序", "URL", "步骤类型", "XPATH", "VALUE", "REMARK") {'stepNumber': 1, 'actionType': 'get', 'xpath': None, 'remark': '打开目标网址'}
-        # 将步骤插入列表 [{'actionid': None, 'fatherid': None, 'actionType': None, 'xpath': '/html/body/div[1]/div[4]/div[1]/div[1]/div[2]/form[1]/div[2]/div[1]/input[1]', 'remark': ''}]
-        # i = 0
-        # for step in step_list:
-        #     self.table.insert('', i, values=(self.fatherid, step.get("fatherid"), step.get("actionid"), step.get("age")))
-        #     i += 1
+
+    # 手动注入js
+    def set_js(self):
+        self.sfc.init_iframe()
+    # 编辑脚本
+
+
+
     # 设置步骤，增删改
     # def set_step(self):
     #     pass
