@@ -115,6 +115,162 @@ class NewStep(tk.Toplevel):
             element = self.parent.sfc.set_element_attribute(info)
             if element:
                 self.parent.sfc.add_style_border(info['value'])
+
+class MakeStep(tk.Toplevel):
+    def __init__(self, parent, info):
+        super().__init__()
+        self.title('新增步骤')
+        self.parent = parent
+        self.step_info = info
+        # xpath
+        self.xpathFrame = ttk.LabelFrame(self, text=' xpath: ')
+        self.xpath = tk.StringVar()
+        self.xpath.set(self.step_info['xpath'])
+        self.xpath_entered = ttk.Entry(self.xpathFrame, width=80, textvariable=self.xpath, state='readonly')
+        self.xpathFrame.grid(column=0, row=0, padx=8, pady=4)
+        self.xpath_entered.grid(column=0, row=0, sticky='W')
+        # value
+        self.valueFrame = ttk.LabelFrame(self, text=' 传入值: ')
+        self.value = tk.StringVar()
+        self.value_entered = ttk.Entry(self.valueFrame, width=80, textvariable=self.value)
+        self.valueFrame.grid(column=0, row=1, padx=8, pady=4)
+        self.value_entered.grid(column=0, row=0, sticky='W')
+        # 步骤类型
+        self.stepTypeFrame = ttk.LabelFrame(self, text=' 步骤类型: ')
+        self.stepType = tk.StringVar()
+        self.stepType_box = ttk.Combobox(self.stepTypeFrame, width=77, textvariable=self.stepType, state='readonly')
+        self.stepType_box["values"] = ("find", "write", "click")
+        self.stepType_box.bind("<<ComboboxSelected>>", self.stepType_set)
+        self.stepTypeFrame.grid(column=0, row=2, padx=8, pady=4)
+        self.stepType_box.grid(column=0, row=0, sticky='W')
+        # 步骤说明
+        self.remarkFrame = ttk.LabelFrame(self, text=' 步骤说明: ')
+        self.remark = tk.StringVar()
+        self.remark_entered = ttk.Entry(self.remarkFrame, width=80, textvariable=self.remark)
+        self.remarkFrame.grid(column=0, row=3, padx=8, pady=4)
+        self.remark_entered.grid(column=0, row=0, sticky='W')
+        # 演示、提交、取消
+        self.commitFrame = ttk.LabelFrame(self, text='')
+        self.commitFrame.grid(column=0, row=4, padx=8, pady=4)
+        self.check = tk.Button(self.commitFrame, text="演示校验", command=self.check)
+        self.check.grid(column=0, row=0, sticky='W')
+        self.commit = tk.Button(self.commitFrame, text="确认提交", command=self.ok)
+        self.commit.grid(column=1, row=0, sticky='W', padx=30)
+        self.backBtn = tk.Button(self.commitFrame, text="取消/返回", command=self.cancel)
+        self.backBtn.grid(column=2, row=0, sticky='W')
+
+
+    def stepType_set(self, *args):
+        self.step_info['actionType'] = self.stepType_box.get()
+
+    def ok(self):
+        self.step_info['remark'] = self.remark.get()
+        self.step_info['value'] = self.value.get()
+        # 显式地更改父窗口参数
+        # self.parent.step_list.append(self.step_info)
+        self.parent.is_cancel = True
+        self.parent.current_window = self.parent.sfc.get_current_window()
+        # 显式地更新父窗口界面
+        # self.parent.l1.config(text=self.parent.name)
+        self.destroy()  # 销毁窗口
+
+    def cancel(self):
+        self.parent.is_cancel = False
+        self.destroy()
+
+    def check(self):
+        info = {'xpath':self.xpath.get(), 'name':'id', 'value':self.xpath.get()}
+        # find ,click
+        setp_type = self.stepType_box.get()
+        if setp_type == 'write':
+            self.parent.sfc.input_any(self.xpath.get(), self.value.get())
+
+        # 检测元素是否有id
+        is_id = self.parent.sfc.check_id_exist(self.xpath.get())
+        if is_id and is_id != '':
+            self.parent.sfc.add_style_border(is_id)
+        else:
+            element = self.parent.sfc.set_element_attribute(info)
+            if element:
+                self.parent.sfc.add_style_border(info['value'])
+
+class EditScript(tk.Toplevel):
+    def __init__(self, parent, step_list):
+        super().__init__()
+        self.title('编辑脚本')
+        self.parent = parent
+        self.step_list = step_list
+        self.main = ttk.LabelFrame(self, text=' 脚本详情 ')
+        column = ("步骤顺序", "URL", "步骤类型", "XPATH", "VALUE", "REMARK")
+        self.etable = ttk.Treeview(self.main, show="headings", column=column)
+        self.evbar = ttk.Scrollbar(self.main, orient='vertical', command=self.etable.yview)
+        self.etable.configure(yscrollcommand=self.evbar.set)
+        self.etable.column("步骤顺序", width=50, anchor='center')
+        self.etable.column("URL", width=80, anchor='center')
+        self.etable.column("步骤类型", width=80, anchor='center')
+        self.etable.column("XPATH", width=240, anchor='center')
+        self.etable.column("VALUE", width=100, anchor='center')
+        self.etable.column("REMARK", width=170, anchor='center')
+        self.etable.heading("步骤顺序", text="No", anchor='center')
+        self.etable.heading("URL", text="URL", anchor='center')
+        self.etable.heading("步骤类型", text="TYPE", anchor='center')
+        self.etable.heading("XPATH", text="XPATH", anchor='center')
+        self.etable.heading("VALUE", text="VALUE", anchor='center')
+        self.etable.heading("REMARK", text="REMARK", anchor='center')
+        self.domain = ttk.LabelFrame(self)
+        self.insert = tk.Button(self.domain, text="插入上一步", width=15, command=self.insert_step)
+        self.update = tk.Button(self.domain, text="修改步骤", width=15, command=self.insert_step)
+        self.delete = tk.Button(self.domain, text="删除步骤", width=15, command=self.insert_step)
+        self.ok = tk.Button(self.domain, text="保存编辑", width=15, command=self.insert_step)
+        self.cancel = tk.Button(self.domain, text="取消编辑", width=15, command=self.insert_step)
+        # grid
+        self.main.grid(column=0, row=0, padx=8, pady=4)
+        self.etable.grid(column=0, row=1, sticky='W')
+        self.evbar.grid(row=1, column=1, sticky='NS')
+        self.domain.grid(column=0, row=2, padx=8, pady=4)
+        self.insert.grid(column=0, row=3, padx=10)
+        self.update.grid(column=1, row=3, padx=10)
+        self.delete.grid(column=2, row=3, padx=10)
+        self.ok.grid(column=3, row=3, padx=10)
+        self.cancel.grid(column=4, row=3, padx=10)
+        # bind
+        self.etable.bind('<ButtonRelease-1>', self.select_row)
+        # refresh
+        self.reload()
+    # 插入数据
+    def insert_step(self):
+        info = self.etable.selection()
+        if info:
+            for item in info:
+                data = self.etable.item(item, "values")
+                # 在这个地方插入
+                step = {'stepNumber': int(data[0]), 'actionType': data[2], 'url': data[1], 'xpath': data[3], 'value': data[4], 'remark': data[5]}
+                index = self.step_list.index(step)
+                ms = MakeStep(self,step)
+                self.wait_window(ms)
+        else:
+            tk.messagebox.showerror('错误', '请先选择插入位置')
+            return
+    # 左键选中触发事件
+    def select_row(self, *args):
+        step = []
+        for item in self.etable.selection():
+            print(item)
+            data = self.etable.item(item, "values")
+            step.append({'stepNumber': int(data[0]), 'actionType': data[2], 'url': data[1], 'xpath': data[3], 'value': data[4], 'remark':data[5]})
+
+    def reload(self):
+        # 清空表
+        for _ in map(self.etable.delete, self.etable.get_children("")): pass
+        # 插入表
+        if len(self.step_list) > 0:
+            for rw in self.step_list:
+                self.etable.insert('', rw.get('stepNumber'), values=(
+                    rw.get('stepNumber'), rw.get('url'), rw.get('actionType'), rw.get('xpath'), rw.get('value'),
+                    rw.get('remark')))
+        #  在每次增删改查操作后再刷新重载
+        # self.etable.after(500, self.reload)
+
 # 主窗口
 class MyBox():
     def __init__(self):
@@ -129,7 +285,7 @@ class MyBox():
         self.put_js = ttk.Button(self.mighty, text="录制当前页面", command=self.start_record, width=10)
         self.new_script = ttk.Button(self.mighty, text="新建脚本", command=self.new_script, width=10)
         self.action = ttk.Button(self.mighty, text="录制此步骤", command=self.catch_step, width=10)
-        self.edit_script = ttk.Button(self.mighty, text="编辑脚本", command=self.catch_step, width=10)
+        self.edit_script = ttk.Button(self.mighty, text="编辑脚本", command=self.edit_step, width=10)
         self.save_script = ttk.Button(self.mighty, text="保存脚本", command=self.new_step, width=10)
         self.go_js = ttk.Button(self.mighty, text="注入功能", command=self.set_js, width=10)
         # self.action = ttk.Button(self.mighty, text="测试", command=lambda: self.get_step(action_id=1), width=10)
@@ -150,7 +306,7 @@ class MyBox():
         self.table.heading("XPATH", text="XPATH", anchor='center')
         self.table.heading("VALUE", text="VALUE", anchor='center')
         self.table.heading("REMARK", text="REMARK", anchor='center')
-
+        # init
         self.script_name = 'a'
         self.step_list = []
         self.url = None
@@ -158,6 +314,7 @@ class MyBox():
         self.is_cancel = False
         self.current_frame = '主界面'
         self.refresh_frame = []
+
     def layout_grid(self):
         self.mighty.grid(column=0, row=0, padx=8, pady=4)
         self.open.grid(column=0, row=1, sticky='W')
@@ -218,7 +375,6 @@ class MyBox():
         # 添加判断 ，如果
         self.sfc.clear_list()
         step_list = self.sfc.catch_xpath()  # [当前抓取的步骤]
-        print('1=====', step_list)
         # 判断step_list中只有主界面一个元素，那么错误（待开发）
         # if step_list is False or len(step_list) < 1:
         if len(step_list) < 1 or step_list[-1]['actionType'] == 'jump':
@@ -235,7 +391,6 @@ class MyBox():
                 # 新增步骤有两种情况，一个是确认，一个是取消 。填写完成后用户点击确定，将修改后的step插入self.step_list
                 # self.step_list.remove(step)  # 确认新增，
             else:
-                print("进入:", step['xpath'])
                 self.refresh_frame.append(step['xpath'])
         # 不取消,添加进步骤内，并且更新所在的frame
         if self.is_cancel:
@@ -243,17 +398,12 @@ class MyBox():
             self.current_frame = self.refresh_frame[-1]
         # 取消
         if self.is_cancel is False:
-            print(step_list)
             self.step_number -= len(step_list)
             # 如果本次采集跳转步骤list长度大于1，那么逆序跳转
             if len(self.refresh_frame) > 1:
                 for frame in reversed(self.refresh_frame):
                     self.sfc.switch_win(frame)
-                    print("返回：", frame)
             self.sfc.switch_win(self.current_frame)
-
-        print(self.step_list)
-        # 刷新步骤
 
     def refresh_table(self):
         # 清空表
@@ -264,18 +414,22 @@ class MyBox():
                 self.table.insert('', rw.get('stepNumber'), values=(
                 rw.get('stepNumber'), rw.get('url'), rw.get('actionType'), rw.get('xpath'), rw.get('value'), rw.get('remark')))
         self.table.after(500, self.refresh_table)
-
+        # 在每次操作后进行刷新。
 
     # 打开新增步骤的窗口
     def new_step(self, step):
         ns = NewStep(self, step)
         self.win.wait_window(ns)
         # 判断
+
     # 手动注入js
     def set_js(self):
         self.sfc.init_iframe()
-    # 编辑脚本
 
+    # 编辑脚本
+    def edit_step(self):
+        es = EditScript(self, self.step_list)
+        self.win.wait_window(es)
 
 
     # 设置步骤，增删改
