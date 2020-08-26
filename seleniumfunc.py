@@ -20,6 +20,7 @@ class WebDriver():
         self.browser.implicitly_wait(3)
         self.get_iframe()
         self.step_list = []
+        self.run_num = 0
     # 加载页面
     def get_url(self,url):
         try:self.browser.get(url); return True
@@ -100,8 +101,11 @@ class WebDriver():
         # except:
         #     return False
         try:
-            iframe = self.browser.find_element_by_xpath(frame)
-            self.browser.switch_to.frame(iframe)
+            if frame == "主界面":
+                self.browser.switch_to.default_content()
+            else:
+                iframe = self.browser.find_element_by_xpath(frame)
+                self.browser.switch_to.frame(iframe)
             # 将跳转步骤插入入数据库
             # sql = "SELECT * FROM [actionList] WHERE actionid = '%s';" % action_id
             # sql = "INSERT INTO [actionList] (actionid,fatherid,actionType,xpath,remark) VALUES ('%s', '%s', '%s', '%s', '%s')" %()
@@ -262,6 +266,19 @@ class WebDriver():
     def clear_list(self):
         self.step_list.clear()
 
+    def get_active_element(self):
+        element = self.browser.switch_to.active_element
+        print(element)
+        if element: return element
+        return False
+
+    def get_current_window(self):
+        try:
+            window = self.browser.current_window_handle
+            return window
+        except:
+            return False
+
     # 每次采集xpath值前进行所在容器判断。判断后生成步骤。
     def catch_xpath(self):
         step_info = {'stepNumber': 1, 'actionType': '', 'url': '', 'xpath': '', 'value': '', 'remark': ''}
@@ -273,13 +290,20 @@ class WebDriver():
                             return result
                         """
         result = self.browser.execute_script(result_js)
-        # 如果是空，那么表示采集的数据不在这个容器内(或者用户没有选择目标元素)，先跳转到主界面
+        # 如果是空，那么表示采集的数据不在这个容器内(或者用户没有选择目标元素)，
         if result == '':
             self.browser.switch_to.default_content()
             step_info['actionType'] = 'jump'
             step_info['xpath'] = '主界面'
             step_info['remark'] = '检测到目标元素不处于当前容器，跳转到目标容器，并新增跳转步骤。'
             self.step_list.append(step_info)
+            self.run_num += 1
+            print(self.run_num)
+            # 如果连续result为空，则表示用户没有选择目标元素 。跳出循环，提醒用户选择目标元素后继续。
+            if self.run_num > 1:
+                self.run_num = 0
+                print("未选择目标元素", self.step_list)
+                return self.step_list
             return self.catch_xpath()
 
         result = json.loads(result)
@@ -327,3 +351,4 @@ class WebDriver():
     def remove_style(self,id):
         js = """document.getElementById('{}').style="";""".format(id)
         self.browser.execute_script(js)
+

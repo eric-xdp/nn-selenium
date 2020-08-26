@@ -91,6 +91,7 @@ class NewStep(tk.Toplevel):
         # 显式地更改父窗口参数
         # self.parent.step_list.append(self.step_info)
         self.parent.is_cancel = True
+        self.parent.current_window = self.parent.sfc.get_current_window()
         # 显式地更新父窗口界面
         # self.parent.l1.config(text=self.parent.name)
         self.destroy()  # 销毁窗口
@@ -155,7 +156,8 @@ class MyBox():
         self.url = None
         self.step_number = 0
         self.is_cancel = False
-
+        self.current_frame = '主界面'
+        self.refresh_frame = []
     def layout_grid(self):
         self.mighty.grid(column=0, row=0, padx=8, pady=4)
         self.open.grid(column=0, row=1, sticky='W')
@@ -177,6 +179,8 @@ class MyBox():
     def open_chrome(self):
         # 初始化自动化方法
         self.sfc = sfunc.WebDriver()
+        self.sfc.clear_list()
+        self.step_list = []
 
     # 开始录制
     def start_record(self):
@@ -189,6 +193,7 @@ class MyBox():
             self.url = self.sfc.get_current_url()
             self.step_number = 1
             self.step_list.append({'stepNumber': 1, 'actionType': 'get', 'url': self.url, 'xpath': '', 'value': '', 'remark': '打开目标网址'})
+            self.current_frame = '主界面'
         except: tk.messagebox.showerror('错误', '请先打开浏览器')
 
     # 在新建脚本后，需要将脚本信息插入数据库，生成action的信息返回。
@@ -203,7 +208,6 @@ class MyBox():
         self.odb.ExecNonQuery(sql)
         select_sql = "SELECT * FROM [action] WHERE ActionName = '%s'" % self.script_name
         info = self.odb.ExecQuery(select_sql)
-        print(info)
         if info is not None:
             self.actionid = info[0][0]
             tk.messagebox.showinfo('成功', '脚本新建成功，actionid为 %s' % self.actionid)
@@ -213,10 +217,14 @@ class MyBox():
         # self.url = self.sfc.get_current_url()
         # 添加判断 ，如果
         self.sfc.clear_list()
-        step_list = self.sfc.catch_xpath() # [当前抓取的步骤]
+        step_list = self.sfc.catch_xpath()  # [当前抓取的步骤]
         print('1=====', step_list)
-        if len(step_list) < 1:
+        # 判断step_list中只有主界面一个元素，那么错误（待开发）
+        # if step_list is False or len(step_list) < 1:
+        if len(step_list) < 1 or step_list[-1]['actionType'] == 'jump':
             tk.messagebox.showerror('错误', '请先选取目标元素！')
+            # 跳转到之前的页面
+            self.sfc.switch_win(self.current_frame)
             return
         for step in step_list:
             self.step_number += 1
@@ -226,8 +234,24 @@ class MyBox():
                 self.new_step(step)  # 将排序好的步骤传入新建页面 ，进行value和type、remark填写。
                 # 新增步骤有两种情况，一个是确认，一个是取消 。填写完成后用户点击确定，将修改后的step插入self.step_list
                 # self.step_list.remove(step)  # 确认新增，
+            else:
+                print("进入:", step['xpath'])
+                self.refresh_frame.append(step['xpath'])
+        # 不取消,添加进步骤内，并且更新所在的frame
         if self.is_cancel:
             self.step_list.extend(step_list)
+            self.current_frame = self.refresh_frame[-1]
+        # 取消
+        if self.is_cancel is False:
+            print(step_list)
+            self.step_number -= len(step_list)
+            # 如果本次采集跳转步骤list长度大于1，那么逆序跳转
+            if len(self.refresh_frame) > 1:
+                for frame in reversed(self.refresh_frame):
+                    self.sfc.switch_win(frame)
+                    print("返回：", frame)
+            self.sfc.switch_win(self.current_frame)
+
         print(self.step_list)
         # 刷新步骤
 
@@ -246,7 +270,7 @@ class MyBox():
     def new_step(self, step):
         ns = NewStep(self, step)
         self.win.wait_window(ns)
-
+        # 判断
     # 手动注入js
     def set_js(self):
         self.sfc.init_iframe()
