@@ -41,6 +41,7 @@ class NewScript(tk.Toplevel):
     def cancel(self):
         self.destroy()
 
+
 # 新增步骤
 class NewStep(tk.Toplevel):
 
@@ -220,7 +221,7 @@ class MyBox():
         # self.edit_script = ttk.Button(self.mighty, text="编辑脚本", command=self.edit_step, width=10)
         self.update_step = ttk.Button(self.mighty, text="修改步骤", command=self.update_step, width=10)
         self.del_step = ttk.Button(self.mighty, text="删除步骤", command=self.del_step, width=10)
-        self.save_script = ttk.Button(self.mighty, text="保存脚本", command=self.new_step, width=10)
+        self.save_script = ttk.Button(self.mighty, text="保存脚本", command=self.save_script, width=10)
         self.go_js = ttk.Button(self.mighty, text="注入录制功能", command=self.set_js, width=13)
         # self.action = ttk.Button(self.mighty, text="测试", command=lambda: self.get_step(action_id=1), width=10)
         self.mighty1 = ttk.LabelFrame(self.win, text=' 步骤详情 ')
@@ -241,13 +242,14 @@ class MyBox():
         self.table.heading("VALUE", text="VALUE", anchor='center')
         self.table.heading("REMARK", text="REMARK", anchor='center')
         # init
-        self.script_name = 'a'
+        self.script_name = None
         self.step_list = []
         self.url = None
         self.step_number = 0
         self.is_cancel = False
         self.current_frame = '主界面'
         self.refresh_frame = []
+        self.actionid = None
 
     # grid
     def layout_grid(self):
@@ -299,14 +301,7 @@ class MyBox():
         if self.script_name == '':
             tk.messagebox.showwarning('警告', '请输入有效脚本名')
             return
-        # 插入数据
-        sql = "INSERT INTO [action] (ActionName,ActionDesc) VALUES ('%s', '%s')" %(self.script_name, self.script_name)
-        self.odb.ExecNonQuery(sql)
-        select_sql = "SELECT * FROM [action] WHERE ActionName = '%s'" % self.script_name
-        info = self.odb.ExecQuery(select_sql)
-        if info is not None:
-            self.actionid = info[0][0]
-            tk.messagebox.showinfo('成功', '脚本新建成功，actionid为 %s' % self.actionid)
+        else:tk.messagebox.showinfo('成功', '脚本新建成功！')
 
     # 采集步骤
     def catch_step(self):
@@ -401,6 +396,50 @@ class MyBox():
         else:
             tk.messagebox.showerror('错误', '请先选择步骤！')
             return False
+
+    # 保存脚本
+    def save_script(self):
+        self.insert_script()
+
+        if len(self.step_list) > 0:
+            for step in self.step_list:
+                # 插入数据
+                sql = "INSERT INTO [actionList] (actionid, fatherid, url, actionType, xpath, value, remark) VALUES (" \
+                      "'%s', '%s', '%s', '%s', '%s', '%s','%s')" % (self.actionid, step['stepNumber'], step['url'],
+                                                                    step['actionType'], step['xpath'], step['value'],
+                                                                    step['remark'])
+                self.odb.ExecNonQuery(sql)
+
+        select_sql = "SELECT * FROM [actionList] WHERE actionid = '%s'" % self.actionid
+        info = self.odb.ExecQuery(select_sql)
+        if info is not None:
+            if len(info) == len(self.step_list):
+                tk.messagebox.showinfo('成功', '脚本保存成功！')
+                # 初始化数据
+                self.init_all()
+                self.refresh_table()
+    # 插入数据表 [action]
+    def insert_script(self):
+
+        # 先将脚本插入数据库 action 表内
+        sql = "INSERT INTO [action] (ActionName,ActionDesc) VALUES ('%s', '%s')" % (self.script_name, self.script_name)
+        self.odb.ExecNonQuery(sql)
+        select_sql = "SELECT * FROM [action] WHERE ActionName = '%s'" % self.script_name
+        info = self.odb.ExecQuery(select_sql)
+        if info is not None:
+            self.actionid = info[0][0]
+            # tk.messagebox.showinfo('成功', '脚本新建成功，actionid为 %s' % self.actionid)
+
+    def init_all(self):
+        # init
+        self.script_name = None
+        self.step_list = []
+        self.url = None
+        self.step_number = 0
+        self.is_cancel = False
+        self.current_frame = '主界面'
+        self.refresh_frame = []
+        self.actionid = None
 
 
     # 设置步骤，增删改
