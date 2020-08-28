@@ -243,7 +243,7 @@ class MyBox():
         self.table.heading("VALUE", text="VALUE", anchor='center')
         self.table.heading("REMARK", text="REMARK", anchor='center')
         # init
-        self.script_name = 'a'
+        self.script_name = None
         self.step_list = []
         self.url = None
         self.step_number = 0
@@ -464,7 +464,7 @@ class MyBox():
         self.current_frame = '主界面'
         self.refresh_frame = []
         self.actionid = None
-        self.window_list = []
+        # self.window_list = []
 
     # 脚本坞展示
     def show_script(self):
