@@ -170,6 +170,7 @@ class WebDriver():
 
     # 注入获取目标元素xpath的js
     def get_xpath(self):
+
         js = """
             var arr = [];
     		var result = []
@@ -278,6 +279,21 @@ class WebDriver():
             return window
         except:
             return False
+
+    def get_all_windows(self):
+        try:
+            windows = self.browser.window_handles
+            return windows
+        except:
+            return False
+
+    def switch_to_window(self, index):
+        try:
+            self.browser.switch_to.window(self.browser.window_handles[index])
+            return True
+        except:
+            return False
+
 
     # 每次采集xpath值前进行所在容器判断。判断后生成步骤。
     def catch_xpath(self):

@@ -10,7 +10,7 @@ import sqlserver as sqls
 import tkinter as tk
 from tkinter import ttk
 import tkinter.messagebox
-
+import runmain
 
 # 新增脚本
 class NewScript(tk.Toplevel):
@@ -223,7 +223,8 @@ class MyBox():
         self.del_step = ttk.Button(self.mighty, text="删除步骤", command=self.del_step, width=10)
         self.save_script = ttk.Button(self.mighty, text="保存脚本", command=self.save_script, width=10)
         self.go_js = ttk.Button(self.mighty, text="注入录制功能", command=self.set_js, width=13)
-        # self.action = ttk.Button(self.mighty, text="测试", command=lambda: self.get_step(action_id=1), width=10)
+        self.show_dock = ttk.Button(self.mighty, text="脚本坞", command=self.show_script)
+        # self.show = ttk.Button(self.mighty, text="脚本坞", command=lambda: self.get_step(action_id=1), width=10)
         self.mighty1 = ttk.LabelFrame(self.win, text=' 步骤详情 ')
         column = ("步骤顺序", "URL", "步骤类型", "XPATH", "VALUE", "REMARK")
         self.table = ttk.Treeview(self.mighty1, show="headings", column=column)
@@ -232,9 +233,9 @@ class MyBox():
         self.table.column("步骤顺序", width=50, anchor='center')
         self.table.column("URL", width=80, anchor='center')
         self.table.column("步骤类型", width=80, anchor='center')
-        self.table.column("XPATH", width=240, anchor='center')
-        self.table.column("VALUE", width=100, anchor='center')
-        self.table.column("REMARK", width=170, anchor='center')
+        self.table.column("XPATH", width=255, anchor='center')
+        self.table.column("VALUE", width=110, anchor='center')
+        self.table.column("REMARK", width=175, anchor='center')
         self.table.heading("步骤顺序", text="No", anchor='center')
         self.table.heading("URL", text="URL", anchor='center')
         self.table.heading("步骤类型", text="TYPE", anchor='center')
@@ -242,7 +243,7 @@ class MyBox():
         self.table.heading("VALUE", text="VALUE", anchor='center')
         self.table.heading("REMARK", text="REMARK", anchor='center')
         # init
-        self.script_name = None
+        self.script_name = 'a'
         self.step_list = []
         self.url = None
         self.step_number = 0
@@ -250,6 +251,7 @@ class MyBox():
         self.current_frame = '主界面'
         self.refresh_frame = []
         self.actionid = None
+        self.window_list = []
 
     # grid
     def layout_grid(self):
@@ -263,6 +265,7 @@ class MyBox():
         self.del_step.grid(column=7, row=1, sticky='W')
         self.save_script.grid(column=8, row=1, sticky='W')
         self.go_js.grid(column=9, row=1, sticky='W')
+        self.show_dock.grid(column=10, row=1, sticky='W')
         self.mighty1.grid(column=0, row=1, padx=8, pady=4)
         self.table.grid(column=0, row=2, sticky='W')
         self.vbar.grid(row=2, column=1, sticky='NS')
@@ -292,6 +295,8 @@ class MyBox():
             self.current_frame = '主界面'
             # 新增步骤，刷新表格
             self.refresh_table()
+            self.window_list.append(self.sfc.get_current_window())
+            self.window_jump()
         except: tk.messagebox.showerror('错误', '请先打开浏览器')
 
     # 在新建脚本
@@ -362,6 +367,24 @@ class MyBox():
     def set_js(self):
         self.sfc.init_iframe()
 
+    def window_jump(self):
+        # 获取所有的window
+        print(self.window_list)
+        all_windows = self.sfc.get_all_windows()
+        if all_windows:
+            for window in all_windows:
+                if window not in self.window_list:
+                    is_jump = tk.messagebox.askyesno("页面切换", "是否切换到新页面？")
+                    if is_jump:
+                        # 添加一条切换新页面的步骤。
+                        step = {'stepNumber': 1, 'actionType': 'jumpWindow', 'url': '', 'xpath': '', 'value': -1,
+                             'remark': '跳转到新页面'}
+                        self.step_list.append(step)
+                        self.window_list.append(window)
+                        # 跳转新页面
+                        self.sfc.switch_to_window(step['value'])
+        self.win.after(500, self.window_jump)
+
     # 修改更新步骤
     def update_step(self):
         step = self.select_step()
@@ -418,6 +441,7 @@ class MyBox():
                 # 初始化数据
                 self.init_all()
                 self.refresh_table()
+
     # 插入数据表 [action]
     def insert_script(self):
 
@@ -440,71 +464,14 @@ class MyBox():
         self.current_frame = '主界面'
         self.refresh_frame = []
         self.actionid = None
+        self.window_list = []
 
-
-    # 设置步骤，增删改
-    # def set_step(self):
-    #     pass
-    #
-    # def get_step(self, action_id):
-    #     # msg = self.name_entered.get()
-    #     # 根据 action_id 获取登录网站所需要的动作列表
-    #     self.step_list = []
-    #     sql = "SELECT * FROM [actionList] WHERE actionid = '%s';" % action_id
-    #     info = self.odb.ExecQuery(sql)
-    #     if len(info) > 0:
-    #         # tk.messagebox.showinfo('提示', u_res[0][2])
-    #         for i in info:
-    #             self.step_list.append({'actionId': i[1], 'fatherId': i[2], 'url': i[3], 'actionType': i[4], 'xpath': i[5], 'value': i[6]})
-    #     else:
-    #         tk.messagebox.showinfo('提示', "用户不存在")
-    #     print(self.step_list)
-    #     self.do_login()
-    #
-    # # 解析登录步骤，登录
-    # def do_login(self):
-    #     types = {'wait': self.do_wait, 'find': self.do_find, 'write': self.do_write, 'click': self.do_click, 'jump': self.do_jump, 'get': self.do_get}
-    #     for action in self.step_list:
-    #         method = types.get(action['actionType'])  # type = 0 1 2 ...
-    #         if method:
-    #             isgo = method(action)
-    #             if isgo: continue  # 如果返回True, 表示该步骤执行完毕
-    #             else:tk.messagebox.showerror('错误', '第 %s 步出错。请检查参数。' % (int(action['fatherId'])+1)); break
-    #
-    # def do_wait(self, action):
-    #     print(action)
-    #     print("这是等待步骤")
-    #     self.sfc.is_wait(action['xpath'])
-    #     return True
-    #
-    # def do_find(self, action):
-    #     print(action)
-    #     print("这是查找元素")
-    #     self.sfc.find_ele(action['xpath'])
-    #     return True
-    #
-    # def do_write(self, action):
-    #     print(action)
-    #     print("这是写入数据")
-    #     self.sfc.input_any(action['xpath'], action['value'])
-    #     return True
-    #
-    # def do_click(self, action):
-    #     print(action)
-    #     print("这是点击步骤")
-    #     self.sfc.click_in(action['xpath'])
-    #     return True
-    #
-    # def do_jump(self, action):
-    #     print(action)
-    #     print("这是iframe窗口切换")
-    #     self.sfc.switch_win(action['xpath'])
-    #     return True
-    #
-    # def do_get(self, action):
-    #     print("这是登录")
-    #     self.sfc.get_url(action['url'])
-    #     return True
+    # 脚本坞展示
+    def show_script(self):
+        select_sql = "SELECT * FROM [action] "
+        info = self.odb.ExecQuery(select_sql)
+        if info is not None:
+            runmain.RunMain(self, info)
 
 if __name__ == '__main__':
     mybox = MyBox()
