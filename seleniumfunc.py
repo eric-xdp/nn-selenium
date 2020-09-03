@@ -262,6 +262,7 @@ class WebDriver():
     		}
     """
         self.browser.execute_script(js)
+
     # 获取采集到的xpath
 
     def clear_list(self):
@@ -294,7 +295,6 @@ class WebDriver():
         except:
             return False
 
-
     # 每次采集xpath值前进行所在容器判断。判断后生成步骤。
     def catch_xpath(self):
         step_info = {'stepNumber': 1, 'actionType': '', 'url': '', 'xpath': '', 'value': '', 'remark': ''}
@@ -306,6 +306,7 @@ class WebDriver():
                             return result
                         """
         result = self.browser.execute_script(result_js)
+
         # 如果是空，那么表示采集的数据不在这个容器内(或者用户没有选择目标元素)，
         if result == '':
             self.browser.switch_to.default_content()
@@ -314,7 +315,6 @@ class WebDriver():
             step_info['remark'] = '检测到目标元素不处于当前容器，跳转到目标容器，并新增跳转步骤。'
             self.step_list.append(step_info)
             self.run_num += 1
-            print(self.run_num)
             # 如果连续result为空，则表示用户没有选择目标元素 。跳出循环，提醒用户选择目标元素后继续。
             if self.run_num > 1:
                 self.run_num = 0
@@ -324,6 +324,7 @@ class WebDriver():
 
         result = json.loads(result)
         step_info['xpath'] = result[-1]['xPath']
+
         # 查询xpath是否能找到元素。
         if self.find_ele(result[-1]['xPath']) is False:
             self.browser.switch_to.default_content()
