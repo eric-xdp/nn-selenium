@@ -29,11 +29,10 @@ class RunMain(tk.Toplevel):
             ttk.Button(self.mighty, text=self.script_list[i][1], command=lambda aId = self.script_list[i][0]: self.get_script(aId)).grid(column=i, row=1, sticky='W')
 
     def get_script(self, action_id):
-        print(action_id)
         # msg = self.name_entered.get()
         # 根据 action_id 获取登录网站所需要的动作列表
         self.step_list = []
-        sql = "SELECT * FROM [actionList] WHERE actionid = '%s';" % action_id
+        sql = "SELECT * FROM [actionList] WHERE actionid = '%s'ORDER BY fatherid ASC ;" % action_id
         info = self.parent.odb.ExecQuery(sql)
         if len(info) > 0:
             # tk.messagebox.showinfo('提示', u_res[0][2])
@@ -56,8 +55,10 @@ class RunMain(tk.Toplevel):
         except:
             tk.messagebox.showerror("错误", "请在程序中先开启浏览器。")
             return False
+
     # 解析登录步骤，登录
     def do_login(self):
+        print(self.step_list)
         types = {'wait': self.do_wait, 'find': self.do_find, 'write': self.do_write, 'click': self.do_click, 'jump': self.do_jump, 'get': self.do_get, 'jumpWindow':self.do_jump_window}
         for action in self.step_list:
             method = types.get(action['actionType'])  # type = 0 1 2 ...
@@ -106,3 +107,5 @@ class RunMain(tk.Toplevel):
         print("跳转页面")
         self.parent.sfc.switch_to_window(action['value'])
         return True
+
+

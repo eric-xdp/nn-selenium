@@ -143,6 +143,7 @@ class WebDriver():
 
     # 初始化iframe id ，并把获取xpath的js注入到每个容器中。
     def init_iframe(self):
+        self.browser.switch_to.default_content()
         init_iframe = """
                     var arr1 = []
                     var iframes1= document.getElementsByTagName("iframe"); 
@@ -160,6 +161,7 @@ class WebDriver():
                     return arr1 
                 """
         iframe_id_list = self.browser.execute_script(init_iframe)
+        print(iframe_id_list)
         self.get_xpath()
         for iframe in iframe_id_list:
             self.browser.switch_to.frame(iframe)

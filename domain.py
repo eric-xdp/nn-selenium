@@ -11,7 +11,7 @@ import tkinter as tk
 from tkinter import ttk
 import tkinter.messagebox
 import runmain
-
+import execute
 
 # 新增脚本
 class NewScript(tk.Toplevel):
@@ -203,6 +203,135 @@ class MakeStep(tk.Toplevel):
             if element:
                 self.parent.sfc.add_style_border(info['value'])
 
+
+# 插入步骤
+class InsertStep(tk.Toplevel):
+    def __init__(self, parent, front_list, back_list):
+        super().__init__()
+        self.title('插入步骤')
+        self.parent = parent
+        self.step_info = {}
+        self.step_list = []
+        self.back_list = back_list
+        self.front_list = front_list
+        self.is_jump = False
+        self.jump_step = {'stepNumber': None, 'actionType': 'jump', 'url': '', 'xpath': '', 'value': '', 'remark': '插入了其他容器数据，需要跳转会原容器。'}
+        # xpath
+        self.xpathFrame = ttk.LabelFrame(self, text=' xpath: ')
+        self.xpath = tk.StringVar()
+        self.xpath_entered = ttk.Entry(self.xpathFrame, width=80, textvariable=self.xpath, state='readonly')
+        self.xpathFrame.grid(column=0, row=0, padx=8, pady=4)
+        self.xpath_entered.grid(column=0, row=0, sticky='W')
+        # value
+        self.valueFrame = ttk.LabelFrame(self, text=' 传入值: ')
+        self.value = tk.StringVar()
+        self.value_entered = ttk.Entry(self.valueFrame, width=80, textvariable=self.value)
+        self.valueFrame.grid(column=0, row=1, padx=8, pady=4)
+        self.value_entered.grid(column=0, row=0, sticky='W')
+        # 步骤类型
+        self.stepTypeFrame = ttk.LabelFrame(self, text=' 步骤类型: ')
+        self.stepType = tk.StringVar()
+        self.stepType_box = ttk.Combobox(self.stepTypeFrame, width=77, textvariable=self.stepType, state='readonly')
+        self.stepType_box["values"] = ("find", "write", "click")
+        self.stepType_box.bind("<<ComboboxSelected>>", self.stepType_set)
+        self.stepTypeFrame.grid(column=0, row=2, padx=8, pady=4)
+        self.stepType_box.grid(column=0, row=0, sticky='W')
+        # 步骤说明
+        self.remarkFrame = ttk.LabelFrame(self, text=' 步骤说明: ')
+        self.remark = tk.StringVar()
+        self.remark_entered = ttk.Entry(self.remarkFrame, width=80, textvariable=self.remark)
+        self.remarkFrame.grid(column=0, row=3, padx=8, pady=4)
+        self.remark_entered.grid(column=0, row=0, sticky='W')
+        # 演示、提交、取消
+
+        self.commitFrame = ttk.LabelFrame(self, text='')
+        self.commitFrame.grid(column=0, row=4, padx=8, pady=4)
+        self.catch = tk.Button(self.commitFrame, text="采集元素", command=self.catch_ele)
+        self.catch.grid(column=0, row=0, sticky='W')
+        self.check = tk.Button(self.commitFrame, text="演示校验", command=self.check_ele)
+        self.check.grid(column=1, row=0, sticky='W')
+        self.commit = tk.Button(self.commitFrame, text="确认提交", command=self.ok)
+        self.commit.grid(column=2, row=0, sticky='W', padx=30)
+        self.backBtn = tk.Button(self.commitFrame, text="取消/返回", command=self.cancel)
+        self.backBtn.grid(column=3, row=0, sticky='W')
+
+    def stepType_set(self, *args):
+        self.step_info['actionType'] = self.stepType_box.get()
+
+    def ok(self):
+        self.step_info['remark'] = self.remark.get()
+        self.step_info['value'] = self.value.get()
+        # 显式地更改父窗口参数
+        # 不取消,添加进步骤内，并且更新所在的frame
+        if len(self.parent.refresh_frame) > 0:
+            self.current_frame = self.parent.refresh_frame[-1]
+            # 添加步骤刷新表格
+            # 9.5 将采集到的插入数据list与传入的数据做处理，生成完成插入的list，并刷新表格。
+        print(self.step_list)
+        print("开始处理list，合成完整的list")
+        for step in self.step_list:
+            if step['actionType'] == 'jump':
+                self.is_jump = True
+                break
+        if self.is_jump:
+            for s in reversed(self.front_list):
+                if s['actionType'] == 'jump':
+                    self.jump_step['stepNumber'] = self.step_list[-1]['stepNumber'] + 1
+                    self.jump_step['xpath'] = s['xpath']
+                    self.step_list.append(self.jump_step)
+                    break
+
+        print("是否有跳转：", self.step_list)
+        print(self.front_list)
+        self.front_list.extend(self.step_list)  # 前段直接整合
+        self.front_list.extend(self.back_list)
+        print(self.front_list)
+        self.parent.step_list = self.front_list
+        self.parent.refresh_table()
+        self.destroy()  # 销毁窗口
+
+    def cancel(self):
+        # self.parent.is_cancel = False
+        # 取消 则获取后半段，执行到最后一步，销毁窗口
+        print(self.front_list)
+        print(self.back_list)
+        # self.destroy()
+
+    def check_ele(self):
+        info = {'xpath':self.xpath.get(), 'name':'id', 'value':self.xpath.get()}
+        # find ,click
+        setp_type = self.stepType_box.get()
+        if setp_type == 'write':
+            self.parent.sfc.input_any(self.xpath.get(), self.value.get())
+
+        # 检测元素是否有id
+        is_id = self.parent.sfc.check_id_exist(self.xpath.get())
+        if is_id and is_id != '':
+            self.parent.sfc.add_style_border(is_id)
+        else:
+            element = self.parent.sfc.set_element_attribute(info)
+            if element:
+                self.parent.sfc.add_style_border(info['value'])
+
+    def catch_ele(self):
+        if self.parent.url_is_change():return
+        self.parent.sfc.clear_list()
+        step_list = self.parent.sfc.catch_xpath()  # [当前抓取的步骤] 抓取步骤最多一个 actionType 为空
+        if len(step_list) < 1 or step_list[-1]['actionType'] == 'jump':
+            tk.messagebox.showerror('错误', '请先选取目标元素！')
+            # 跳转到之前的页面
+            self.parent.sfc.switch_win(self.parent.current_frame)
+            return
+        for step in step_list:
+            self.parent.step_number += 1
+            step['stepNumber'] = self.parent.step_number  # 给步骤排序完成
+            # 如果不是跳转的动作，则映射抓取到的xpath
+            if step['actionType'] == '':
+                self.xpath.set(step['xpath'])
+                self.step_info = step
+            else:
+                self.parent.refresh_frame.append(step['xpath'])
+        self.step_list.extend(step_list)
 
 # 主窗口 main
 class MyBox():
@@ -439,12 +568,19 @@ class MyBox():
         all_step = self.step_list
         if step:
             # 将self.step_list根据step进行切割
+            if step['']
             index = self.step_list.index(step)
-            front_step = all_step[:index - 1]
-            back_section_step = all_step[index - 1:]
+            front_step = all_step[:index]
+            back_section_step = all_step[index:]
+            # 执行前半段
+            execute.ExecuteClass(self, front_step).execute_core()
             # 重新定位到front_step位置。需要调用执行脚本的函数 do_login(front_Step)
             # 9.3继续
-            
+            tk.messagebox.showwarning("提醒", "请选择插入的目标元素，并点击采集。")
+            # 生成一个空白GUI，有采集按钮，功能和录制此步骤一样 。
+            # 9.5继续
+            insert_ele = InsertStep(self, front_step, back_section_step)
+            self.win.wait_window(insert_ele)
 
     # 修改更新步骤
     def update_step(self):
