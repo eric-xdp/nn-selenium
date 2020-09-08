@@ -79,27 +79,7 @@ class WebDriver():
 
     # 跳转到指定容器，需要参数 容器xpath。 type: jump
     def switch_win(self, frame):
-        # 先自定义iframeID,
-        # iframe = """
-        #                         var arr1 = []
-        #                         var iframes1= document.getElementsByTagName("iframe");
-        #                         var iframes2= document.getElementsByTagName("frame");
-        #                         for(var i=0;i<iframes1.length;i++) {
-        #                     		iframes1[i].style.overflow = "visible";
-        #                     		iframes1[i].setAttribute("id", "iframe1"+ i);
-        #                             arr1.push(iframes1[i].id)
-        #                         }
-        #                         for(var i=0;i<iframes2.length;i++) {
-        #                     		iframes2[i].style.overflow = "visible";
-        #                     		iframes2[i].setAttribute("id", "iframe2"+ i);
-        #                             arr1.push(iframes2[i].id)
-        #                         }
-        #                         return arr1
-        #                     """
-        # try:
-        #     self.browser.execute_script(iframe);self.browser.switch_to.frame(frame_id);return True
-        # except:
-        #     return False
+
         try:
             if frame == "主界面":
                 self.browser.switch_to.default_content()

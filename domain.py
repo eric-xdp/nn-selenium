@@ -267,8 +267,6 @@ class InsertStep(tk.Toplevel):
             self.current_frame = self.parent.refresh_frame[-1]
             # 添加步骤刷新表格
             # 9.5 将采集到的插入数据list与传入的数据做处理，生成完成插入的list，并刷新表格。
-        print(self.step_list)
-        print("开始处理list，合成完整的list")
         for step in self.step_list:
             if step['actionType'] == 'jump':
                 self.is_jump = True
@@ -281,11 +279,8 @@ class InsertStep(tk.Toplevel):
                     self.step_list.append(self.jump_step)
                     break
 
-        print("是否有跳转：", self.step_list)
-        print(self.front_list)
         self.front_list.extend(self.step_list)  # 前段直接整合
         self.front_list.extend(self.back_list)
-        print(self.front_list)
         self.parent.step_list = self.front_list
         self.parent.refresh_table()
         self.destroy()  # 销毁窗口
@@ -293,9 +288,10 @@ class InsertStep(tk.Toplevel):
     def cancel(self):
         # self.parent.is_cancel = False
         # 取消 则获取后半段，执行到最后一步，销毁窗口
-        print(self.front_list)
-        print(self.back_list)
-        # self.destroy()
+        # 合并前后两段
+        self.front_list.extend(self.back_list)
+        execute.ExecuteClass(self.parent, self.front_list).execute_core()
+        self.destroy()
 
     def check_ele(self):
         info = {'xpath':self.xpath.get(), 'name':'id', 'value':self.xpath.get()}
@@ -424,11 +420,13 @@ class MyBox():
         y = (hs / 2) - (h / 2)
         self.win.geometry('%dx%d+%d+%d' % (w, h, x, y))
 
+    # 初始化GUI
     def start(self):
         # self.refresh_table()
         self.layout_grid()
         self.win.mainloop()
 
+    # 打开浏览器
     def open_chrome(self):
         # 初始化自动化方法
         self.sfc = sfunc.WebDriver()
@@ -568,7 +566,7 @@ class MyBox():
         all_step = self.step_list
         if step:
             # 将self.step_list根据step进行切割
-            if step['']
+            # if step['']
             index = self.step_list.index(step)
             front_step = all_step[:index]
             back_section_step = all_step[index:]

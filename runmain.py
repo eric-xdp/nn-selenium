@@ -69,42 +69,35 @@ class RunMain(tk.Toplevel):
 
     def do_wait(self, action):
         print(action)
-        print("这是等待步骤")
         self.parent.sfc.is_wait(action['xpath'])
         return True
 
     def do_find(self, action):
         print(action)
-        print("这是查找元素")
         self.parent.sfc.find_ele(action['xpath'])
         return True
 
     def do_write(self, action):
         print(action)
-        print("这是写入数据")
         self.parent.sfc.input_any(action['xpath'], action['value'])
         return True
 
     def do_click(self, action):
         print(action)
-        print("这是点击步骤")
         self.parent.sfc.click_in(action['xpath'])
         return True
 
     def do_jump(self, action):
         print(action)
-        print("这是iframe窗口切换")
         self.parent.sfc.switch_win(action['xpath'])
         return True
 
     def do_get(self, action):
-        print("这是登录")
         self.parent.sfc.get_url(action['url'])
         return True
 
     def do_jump_window(self, action):
         print(action)
-        print("跳转页面")
         self.parent.sfc.switch_to_window(action['value'])
         return True
 
