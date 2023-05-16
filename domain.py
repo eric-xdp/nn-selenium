@@ -334,7 +334,7 @@ class MyBox():
     # init
     def __init__(self):
         # 初始化数据库
-        self.odb = sqls.ODBC(server='120.79.208.121,1433', uid='auto', pwd='autogxpwd', db="auto")
+        self.odb = sqls.ODBC(server='IP,PORT', uid='user', pwd='pwd', db="auto")
         # GUI
         self.win = tk.Tk()
         self.win.title('My MagicBox')
